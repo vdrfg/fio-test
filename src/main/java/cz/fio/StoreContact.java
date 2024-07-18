@@ -27,33 +27,43 @@ public class StoreContact extends HttpServlet {
 		String lastName = request.getParameter("lastName");
 		String email = request.getParameter("email");
 
-		response.setContentType("text/plain");
-
+		// responding with bad request if any of params are missing
 		if (firstName == null || lastName == null || email == null) {
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			response.getWriter().write("Missing parameters");
 			return;
 		}
 
-		String csvRecord = firstName + "," + lastName + "," + email + System.lineSeparator();
+		// forming a contact for future comparison with existing contacts
+		String csvContact = firstName + "," + lastName + "," + email + System.lineSeparator();
 
 		File csvFile = new File(csvPath);
 
+		// preventing multi-thread access to the file
 		synchronized (StoreContact.class) {
 			try {
+				// creating csv file if it doesn't exist yet
 				if (!csvFile.exists()) {
 					csvFile.createNewFile();
 				}
+
+				// reading file to get existing contacts
 				Set<String> contactSet = new HashSet<>(Files.readAllLines(csvFile.toPath(), StandardCharsets.ISO_8859_1));
 
-				if (!contactSet.contains(csvRecord.trim())) {
-					Files.writeString(csvFile.toPath(), csvRecord, StandardOpenOption.APPEND);
+				if (!contactSet.contains(csvContact.trim())) {
+					// saving a contact if it doesn't exist yet and responding with 200
+					Files.writeString(csvFile.toPath(), csvContact, StandardOpenOption.APPEND);
 					response.setStatus(HttpServletResponse.SC_OK);
 				} else {
+					// responding with 409 if entered contact is duplicate
 					response.setStatus(HttpServletResponse.SC_CONFLICT);
 					response.getWriter().write("Contact is already in the file");
 				}
+
 			} catch (IOException e) {
+				// logging error to find out the exact cause of failure
+				// this could be expanded to handle specific errors
+				// user could then get more appropriate and specific response
 				log.error("File operation failed", e);
 				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 				response.getWriter().write("Internal server error");

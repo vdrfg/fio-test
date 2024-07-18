@@ -34,7 +34,7 @@ class StoreContactTest {
 
 	@Test
 	void missingParams() throws IOException {
-		setupRequestParameters(null);
+		setupRequestParameters(null, "Doe", "johndoe@email.com");
 		handleRequestAndFlush();
 		assertTrue(stringWriter.toString().contains("Missing parameters"));
 		verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -42,17 +42,17 @@ class StoreContactTest {
 
 	@Test
 	void duplicateContact() throws IOException {
-		setupRequestParameters("John");
-		handleRequestAndFlush();
+		setupRequestParameters("John", "Doe", "johndoe@email.com");
 		handleRequestAndFlush();
 		verify(response).setStatus(HttpServletResponse.SC_CONFLICT);
 		assertTrue(stringWriter.toString().contains("Contact is already in the file"));
 	}
 
-	private void setupRequestParameters(String firstName) {
+	// param setup - more useful on bigger scale (more tests for specific params etc)
+	private void setupRequestParameters(String firstName, String lastName, String email) {
 		when(request.getParameter("firstName")).thenReturn(firstName);
-		when(request.getParameter("lastName")).thenReturn("Doe");
-		when(request.getParameter("email")).thenReturn("johndoe@email.com");
+		when(request.getParameter("lastName")).thenReturn(lastName);
+		when(request.getParameter("email")).thenReturn(email);
 	}
 
 	private void handleRequestAndFlush() throws IOException {
