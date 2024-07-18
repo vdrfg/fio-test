@@ -2,10 +2,11 @@ package cz.fio;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -32,27 +33,27 @@ public class StoreContact extends HttpServlet {
 			return;
 		}
 
-		String csvRecord = firstName + "," + lastName + "," + email;
+		String csvRecord = firstName + "," + lastName + "," + email + System.lineSeparator();
 
 		File csvFile = new File(csvPath);
-		List<String> contactList = new ArrayList<>();
-		try {
-			contactList = Files.readAllLines(csvFile.toPath());
-		} catch (IOException e) {
-			log.error(e.getMessage(), e);
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-		}
 
-		if (!contactList.contains(csvRecord)) {
+		synchronized (StoreContact.class) {
 			try {
-				Files.writeString(csvFile.toPath(), csvRecord, StandardOpenOption.APPEND);
-			} catch (IOException e) {
-				log.error(e.getMessage(), e);
-				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			}
-		} else {
-			response.getWriter().write("Contact is already in the file");
-		}
+				if (!csvFile.exists()) {
+					csvFile.createNewFile();
+				}
+				Set<String> contactSet = new HashSet<>(Files.readAllLines(csvFile.toPath(), StandardCharsets.ISO_8859_1));
 
+				if (!contactSet.contains(csvRecord.trim())) {
+					Files.writeString(csvFile.toPath(), csvRecord, StandardOpenOption.APPEND);
+				} else {
+					response.getWriter().write("Contact is already in the file");
+				}
+			} catch (IOException e) {
+				log.error("File operation failed", e);
+				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				response.getWriter().write("Internal server error");
+			}
+		}
 	}
 }
