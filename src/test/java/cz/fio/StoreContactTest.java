@@ -48,6 +48,14 @@ class StoreContactTest {
 		assertTrue(stringWriter.toString().contains("Contact is already in the file"));
 	}
 
+	@Test
+	void invalidEmail() throws IOException {
+		setupRequestParameters("John", "Doe", "johndoeemail.com");
+		handleRequestAndFlush();
+		verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+		assertTrue(stringWriter.toString().contains("Invalid email"));
+	}
+
 	// param setup - more useful on bigger scale (more tests for specific params etc)
 	private void setupRequestParameters(String firstName, String lastName, String email) {
 		when(request.getParameter("firstName")).thenReturn(firstName);

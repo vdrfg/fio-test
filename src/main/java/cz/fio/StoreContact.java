@@ -7,11 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +34,22 @@ public class StoreContact extends HttpServlet {
 		if (firstName == null || lastName == null || email == null) {
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			response.getWriter().write("Missing parameters");
+			return;
+		}
+
+		// protecting against injection attacks
+		firstName = StringEscapeUtils.escapeHtml4(firstName);
+		lastName = StringEscapeUtils.escapeHtml4(lastName);
+		email = StringEscapeUtils.escapeHtml4(email);
+
+		// email validation
+		String emailRegEx = "^[A-Za-z0-9+_.-]+@(.+)$";
+		Pattern pattern = Pattern.compile(emailRegEx);
+		Matcher matcher = pattern.matcher(email);
+
+		if (!matcher.matches()) {
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			response.getWriter().write("Invalid email");
 			return;
 		}
 
