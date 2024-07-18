@@ -1,6 +1,7 @@
 package cz.fio;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -26,7 +27,7 @@ public class StoreContact extends HttpServlet {
 	private static final Logger log = LoggerFactory.getLogger(StoreContact.class);
 
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		String firstName = request.getParameter("firstName");
 		String lastName = request.getParameter("lastName");
 		String email = request.getParameter("email");
@@ -63,26 +64,18 @@ public class StoreContact extends HttpServlet {
 				// creating csv file if it doesn't exist yet
 				if (!csvFile.exists()) {
 					csvFile.createNewFile();
-				}
-
-				// creating a set of existing contacts
-				Set<String> contactSet = readCsv(csvFile);
-
-				if (!contactSet.contains(csvContact)) {
-					// creating CSV printer with windows encoding and append mode
-					try (CSVPrinter csvPrinter = CSVFormat.DEFAULT
-							.print(new OutputStreamWriter(
-									new FileOutputStream(csvFile, true),
-									"windows-1250")
-							)
-					) {
-						// writing CSV record
-						csvPrinter.printRecord(csvContact);
-						response.setStatus(HttpServletResponse.SC_OK);
-					}
+					writeContactIntoFile(csvFile, csvContact, response);
 				} else {
-					response.setStatus(HttpServletResponse.SC_CONFLICT);
-					response.getWriter().write("Contact is already in the file");
+					// creating a set of existing contacts
+					Set<String> contactSet = readCsv(csvFile);
+
+					// make sure there are no duplicates
+					if (!contactSet.contains(csvContact)) {
+						writeContactIntoFile(csvFile, csvContact, response);
+					} else {
+						response.setStatus(HttpServletResponse.SC_CONFLICT);
+						response.getWriter().write("Contact is already in the file");
+					}
 				}
 			} catch (IOException e) {
 				// logging error to find out the exact cause of failure
@@ -119,5 +112,20 @@ public class StoreContact extends HttpServlet {
 			}
 		}
 		return contactSet;
+	}
+
+	private void writeContactIntoFile(
+			File csvFile, String csvContact, HttpServletResponse response) throws IOException {
+		// creating CSV printer with windows encoding and append mode
+		try (CSVPrinter csvPrinter = CSVFormat.DEFAULT
+				.print(new OutputStreamWriter(
+						new FileOutputStream(csvFile, true),
+						"windows-1250")
+				)
+		) {
+			// writing CSV record
+			csvPrinter.printRecord(csvContact);
+			response.setStatus(HttpServletResponse.SC_OK);
+		}
 	}
 }

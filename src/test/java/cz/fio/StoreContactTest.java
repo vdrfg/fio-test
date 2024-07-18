@@ -64,7 +64,7 @@ class StoreContactTest {
 	}
 
 	private void handleRequestAndFlush() throws IOException {
-		storeContact.doGet(request, response);
+		storeContact.doPost(request, response);
 		writer.flush();
 	}
 }
