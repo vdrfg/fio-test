@@ -27,6 +27,8 @@ public class StoreContact extends HttpServlet {
 		String lastName = request.getParameter("lastName");
 		String email = request.getParameter("email");
 
+		response.setContentType("text/plain");
+
 		if (firstName == null || lastName == null || email == null) {
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			response.getWriter().write("Missing parameters");
@@ -46,7 +48,9 @@ public class StoreContact extends HttpServlet {
 
 				if (!contactSet.contains(csvRecord.trim())) {
 					Files.writeString(csvFile.toPath(), csvRecord, StandardOpenOption.APPEND);
+					response.setStatus(HttpServletResponse.SC_OK);
 				} else {
+					response.setStatus(HttpServletResponse.SC_CONFLICT);
 					response.getWriter().write("Contact is already in the file");
 				}
 			} catch (IOException e) {

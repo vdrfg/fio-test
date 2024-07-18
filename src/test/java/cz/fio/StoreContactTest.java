@@ -1,8 +1,10 @@
-
 package cz.fio;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -14,63 +16,47 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 class StoreContactTest {
+	private HttpServletRequest request;
+	private HttpServletResponse response;
+	private StringWriter stringWriter;
+	private PrintWriter writer;
+	private StoreContact storeContact;
+
+	@BeforeEach
+	void setup() throws IOException {
+		request = Mockito.mock(HttpServletRequest.class);
+		response = Mockito.mock(HttpServletResponse.class);
+		stringWriter = new StringWriter();
+		writer = new PrintWriter(stringWriter);
+		when(response.getWriter()).thenReturn(writer);
+		storeContact = new StoreContact();
+	}
 
 	@Test
-	void testDoGet_missingParams() throws IOException {
-		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-		HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-
-		Mockito.when(request.getParameter("firstName")).thenReturn(null);
-		Mockito.when(request.getParameter("lastName")).thenReturn("last");
-		Mockito.when(request.getParameter("email")).thenReturn("email@test.com");
-
-		StringWriter stringWriter = new StringWriter();
-		PrintWriter writer = new PrintWriter(stringWriter);
-		Mockito.when(response.getWriter()).thenReturn(writer);
-
-		StoreContact storeContact = new StoreContact();
-		storeContact.doGet(request, response);
-
-		writer.flush();
+	void missingParams() throws IOException {
+		setupRequestParameters(null);
+		handleRequestAndFlush();
 		assertTrue(stringWriter.toString().contains("Missing parameters"));
+		verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
 	}
 
 	@Test
-	void testDoGet_allParams() throws IOException {
-		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-		HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-		Mockito.when(request.getParameter("firstName")).thenReturn("first");
-		Mockito.when(request.getParameter("lastName")).thenReturn("last");
-		Mockito.when(request.getParameter("email")).thenReturn("email@test.com");
-
-		StringWriter stringWriter = new StringWriter();
-		PrintWriter writer = new PrintWriter(stringWriter);
-		Mockito.when(response.getWriter()).thenReturn(writer);
-
-		StoreContact storeContact = new StoreContact();
-		storeContact.doGet(request, response);
-
-		writer.flush();
-		assertTrue(stringWriter.toString().isEmpty());
-	}
-
-	@Test
-	void testDoGet_duplicateContact() throws IOException {
-		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
-		HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
-		Mockito.when(request.getParameter("firstName")).thenReturn("firstDupl");
-		Mockito.when(request.getParameter("lastName")).thenReturn("lastDupl");
-		Mockito.when(request.getParameter("email")).thenReturn("emailDupl@test.com");
-
-		StringWriter stringWriter = new StringWriter();
-		PrintWriter writer = new PrintWriter(stringWriter);
-		Mockito.when(response.getWriter()).thenReturn(writer);
-
-		StoreContact storeContact = new StoreContact();
-		storeContact.doGet(request, response);
-		storeContact.doGet(request, response);
-
-		writer.flush();
+	void duplicateContact() throws IOException {
+		setupRequestParameters("John");
+		handleRequestAndFlush();
+		handleRequestAndFlush();
+		verify(response).setStatus(HttpServletResponse.SC_CONFLICT);
 		assertTrue(stringWriter.toString().contains("Contact is already in the file"));
+	}
+
+	private void setupRequestParameters(String firstName) {
+		when(request.getParameter("firstName")).thenReturn(firstName);
+		when(request.getParameter("lastName")).thenReturn("Doe");
+		when(request.getParameter("email")).thenReturn("johndoe@email.com");
+	}
+
+	private void handleRequestAndFlush() throws IOException {
+		storeContact.doGet(request, response);
+		writer.flush();
 	}
 }
